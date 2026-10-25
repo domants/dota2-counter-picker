@@ -355,7 +355,8 @@ a {
   border-radius: var(--r-lg);
 }
 
-.finder input {
+.finder input,
+.pool-field input {
   width: 100%;
   min-height: 48px;
   padding: 0.7rem 1rem 0.7rem 2.6rem;
@@ -367,11 +368,13 @@ a {
   font-size: 1rem;
 }
 
-.finder input::placeholder {
+.finder input::placeholder,
+.pool-field input::placeholder {
   color: var(--muted);
 }
 
-.finder input:focus-visible {
+.finder input:focus-visible,
+.pool-field input:focus-visible {
   outline: none;
   border-color: var(--aegis);
 }
@@ -889,13 +892,46 @@ a {
 
 /* ---------- hero pool ---------- */
 
-.pool-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+.pool-chips {
   margin-bottom: 8px;
+}
+
+/* The search row stays pinned while you scroll through the heroes. */
+.pool-search {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -10px;
+  margin-bottom: 2px;
+  padding: 10px 0;
+  background: var(--night);
+}
+
+.pool-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.pool-field input {
+  min-height: 44px;
+}
+
+.pool-search .btn {
+  flex: none;
+  min-height: 44px;
+  border-radius: var(--r-lg);
+}
+
+.pool-empty {
+  margin: 12px 0;
+  color: var(--muted);
+}
+
+.tile.is-best {
+  box-shadow: 0 0 0 2px var(--aegis), 0 0 14px -2px rgb(230 190 106 / 0.6);
 }
 
 .edit-banner {

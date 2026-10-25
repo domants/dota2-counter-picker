@@ -298,7 +298,9 @@
 
   function filterGrid() {
     const q = state.query.trim().toLowerCase();
-    const matches = q ? new Set(search(q).map((h) => h.id)) : null;
+    const ranked = q ? search(q) : [];
+    const matches = q ? new Set(ranked.map((h) => h.id)) : null;
+    const visible = new Set();
     for (const tile of $$(".tile")) {
       const h = state.byId.get(Number(tile.dataset.hero));
       let show = true;
@@ -306,9 +308,24 @@
       else if (state.poolRole) show = h.positions.includes(state.poolRole);
       if (matches) show = show && matches.has(h.id);
       tile.parentElement.hidden = !show;
+      if (show) visible.add(h.id);
     }
     for (const sec of $$(".attr")) {
       sec.hidden = !$$(".tiles > li", sec).some((li) => !li.hidden);
+    }
+
+    // Highlight the best match so Enter in the hero search knows what to add.
+    const best = ranked.find((h) => visible.has(h.id) && (state.editMine || !isPicked(h.id)));
+    state.bestMatch = best ? best.id : null;
+    for (const tile of $$(".tile.is-best")) tile.classList.remove("is-best");
+    if (best) $(`.tile[data-hero="${best.id}"]`).classList.add("is-best");
+
+    const empty = $("#pool-empty");
+    empty.hidden = !q || visible.size > 0;
+    if (!empty.hidden) {
+      empty.textContent = state.poolRole
+        ? `No heroes match "${state.query.trim()}" with this filter. Try All heroes.`
+        : `No heroes match "${state.query.trim()}".`;
     }
   }
 
@@ -609,10 +626,25 @@
     });
 
     const input = $("#search");
+    const poolInput = $("#pool-search");
     input.addEventListener("input", () => {
-      state.query = input.value;
-      filterGrid();
+      setQuery(input.value, input);
       renderSuggest();
+    });
+    poolInput.addEventListener("input", () => {
+      setQuery(poolInput.value, poolInput);
+      $("#suggest").hidden = true;
+    });
+    poolInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (state.bestMatch) {
+          onTile(state.bestMatch);
+          clearSearch();
+        }
+      } else if (e.key === "Escape") {
+        clearSearch();
+      }
     });
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
@@ -649,7 +681,8 @@
     document.addEventListener("keydown", (e) => {
       if (e.key === "/" && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) {
         e.preventDefault();
-        input.focus();
+        // Use whichever search box is on screen.
+        (input.getBoundingClientRect().bottom > 0 ? input : poolInput).focus();
       }
     });
     document.addEventListener("click", (e) => {
@@ -683,6 +716,12 @@
     }
     if (isPicked(id)) removeHero(id);
     else addHero(id);
+    // After picking from a filtered list, reset it for the next search.
+    if (state.query) {
+      const used = state.lastSearchInput;
+      clearSearch();
+      if (used && !window.matchMedia("(hover: none)").matches) used.focus();
+    }
   }
 
   function setActive(team) {
@@ -754,9 +793,19 @@
     }
   }
 
+  function setQuery(value, from) {
+    state.query = value;
+    state.lastSearchInput = from;
+    // Keep both search boxes showing the same text.
+    for (const el of [$("#search"), $("#pool-search")]) {
+      if (el !== from) el.value = value;
+    }
+    filterGrid();
+  }
+
   function clearSearch() {
-    const input = $("#search");
-    input.value = "";
+    $("#search").value = "";
+    $("#pool-search").value = "";
     state.query = "";
     $("#suggest").hidden = true;
     filterGrid();
