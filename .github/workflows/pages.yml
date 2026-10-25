@@ -1,0 +1,88 @@
+name: Build data and deploy
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Mondays at 06:17 UTC
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      pages_per_bracket:
+        description: "Pages of 100 matches to sample per rank bracket"
+        default: "250"
+        required: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  data:
+    name: Refresh matchup data
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      # On a normal code push, skip the slow data build if data already exists.
+      - name: Decide whether to rebuild data
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ -f data/meta.json ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v5
+        if: steps.check.outputs.run == 'true'
+        with:
+          node-version: 22
+
+      - name: Sample matches from OpenDota
+        if: steps.check.outputs.run == 'true'
+        env:
+          OPENDOTA_API_KEY: ${{ secrets.OPENDOTA_API_KEY }}
+          PAGES_PER_BRACKET: ${{ inputs.pages_per_bracket || '250' }}
+        run: node scripts/build-data.mjs
+
+      - name: Commit updated data
+        if: steps.check.outputs.run == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "Data unchanged."
+            exit 0
+          fi
+          git commit -m "Update matchup data"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: data
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dota 2 Counter Picker</title>
+  <meta name="description" content="Add the enemy draft and see which Dota 2 heroes win most against it, by rank bracket and role.">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#181b24">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23181b24'/%3E%3Cpath d='M6 26 L16 6 L16 26Z' fill='%236cc497'/%3E%3Cpath d='M26 6 L16 26 L16 6Z' fill='%23e0604f'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://cdn.cloudflare.steamstatic.com">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <a class="skip" href="#results">Skip to results</a>
+
+  <header class="top wrap">
+    <div class="title">
+      <h1>Counter Picker</h1>
+      <p class="lede">Add the enemy draft. See who beats it.</p>
+    </div>
+    <div class="top-actions">
+      <label class="select">
+        <span class="sr-only">Rank bracket</span>
+        <select id="bracket"></select>
+      </label>
+      <button type="button" class="btn" id="share">Copy draft link</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="board" aria-label="Draft">
+      <div class="team" data-team="ally" id="team-ally">
+        <button type="button" class="team-head" data-set-active="ally" aria-pressed="false">
+          <span class="team-name">Your team</span>
+          <span class="team-count" data-count="ally">0/5</span>
+          <span class="team-hint" data-hint="ally">Tap to add here</span>
+        </button>
+        <ol class="slots" data-slots="ally"></ol>
+      </div>
+
+      <div class="vs" aria-hidden="true">vs</div>
+
+      <div class="team" data-team="enemy" id="team-enemy">
+        <button type="button" class="team-head" data-set-active="enemy" aria-pressed="true">
+          <span class="team-name">Enemy team</span>
+          <span class="team-count" data-count="enemy">0/5</span>
+          <span class="team-hint" data-hint="enemy">Adding here</span>
+        </button>
+        <ol class="slots" data-slots="enemy"></ol>
+      </div>
+
+      <div class="finder">
+        <div class="finder-field">
+          <label for="search" class="sr-only">Find a hero</label>
+          <input id="search" type="search" autocomplete="off" spellcheck="false"
+                 placeholder="Add a hero to the enemy team" aria-describedby="search-help">
+          <span id="search-help" class="sr-only">Type a name and press Enter to add the first match to the highlighted team. Press slash to jump here.</span>
+          <ul class="suggest" id="suggest" role="listbox" hidden></ul>
+        </div>
+        <button type="button" class="btn btn-quiet" id="clear">Clear draft</button>
+      </div>
+    </section>
+
+    <div class="layout">
+      <section class="results" id="results" aria-label="Suggestions" tabindex="-1">
+        <div class="tabs" role="tablist" aria-label="Suggestion type">
+          <button type="button" role="tab" class="tab" id="tab-best" aria-selected="true" data-tab="best">Best picks</button>
+          <button type="button" role="tab" class="tab" id="tab-avoid" aria-selected="false" data-tab="avoid">Picks to avoid</button>
+        </div>
+
+        <div class="controls">
+          <div class="control">
+            <span class="control-label" id="role-label">Your role</span>
+            <div class="chips" role="group" aria-labelledby="role-label" id="role-chips"></div>
+          </div>
+          <div class="control control-row">
+            <label class="switch">
+              <input type="checkbox" id="only-mine">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span>Only my heroes</span>
+            </label>
+            <div class="seg" role="group" aria-label="Rank by">
+              <button type="button" class="seg-btn" data-rank="winrate" aria-pressed="true">Win rate</button>
+              <button type="button" class="seg-btn" data-rank="advantage" aria-pressed="false">Advantage</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="notice" id="notice" hidden></div>
+        <ol class="list" id="list" aria-live="polite"></ol>
+        <button type="button" class="btn btn-wide" id="more" hidden>Show more</button>
+        <p class="source" id="source"></p>
+      </section>
+
+      <section class="pool" aria-label="Heroes">
+        <div class="pool-head">
+          <div class="chips" role="group" aria-label="Filter heroes" id="pool-chips"></div>
+          <button type="button" class="btn btn-small" id="edit-mine" aria-pressed="false">My heroes (0)</button>
+        </div>
+        <p class="edit-banner" id="edit-banner" hidden>
+          Tap the heroes you play. They're saved on this device.
+          <button type="button" class="btn btn-small" id="edit-done">Done</button>
+        </p>
+        <div id="grid"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="foot wrap">
+    <p>Match data from <a href="https://www.opendota.com/" rel="noopener">OpenDota</a>. Hero portraits and Dota 2 are property of Valve Corporation. This is a fan project, not affiliated with Valve.</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="assets/app.js" defer></script>
+</body>
+</html>
