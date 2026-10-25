@@ -248,7 +248,9 @@
       $(`[data-set-active="${team}"].team-head`).setAttribute("aria-pressed", String(activeHere));
       $(`[data-hint="${team}"]`).textContent = activeHere ? "Adding here" : "Add here";
     }
-    $("#search").placeholder = `Add a hero to ${state.active === "ally" ? "your team" : "enemy team"}`;
+    const target = state.active === "ally" ? "your team" : "enemy team";
+    const narrow = window.matchMedia("(max-width: 520px)").matches;
+    $("#search").placeholder = narrow ? `Add to ${target}` : `Add a hero to ${target}`;
     syncGridMarks();
     writeUrl();
   }
@@ -658,39 +660,26 @@
     });
 
     const input = $("#search");
-    const poolInput = $("#pool-search");
     input.addEventListener("input", () => {
-      setQuery(input.value, input);
+      setQuery(input.value);
       renderSuggest();
-    });
-    poolInput.addEventListener("input", () => {
-      setQuery(poolInput.value, poolInput);
-      $("#suggest").hidden = true;
-    });
-    poolInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        if (state.bestMatch) {
-          onTile(state.bestMatch);
-          clearSearch();
-        }
-      } else if (e.key === "Escape") {
-        clearSearch();
-      }
     });
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        const first = search(input.value.trim().toLowerCase()).find((h) => !isPicked(h.id));
-        if (first) {
-          addHero(first.id);
+        // Add the highlighted tile; if a role filter hides every match, fall back to the best match overall.
+        const q = input.value.trim().toLowerCase();
+        const fallback = !state.editMine && search(q).find((h) => !isPicked(h.id));
+        const id = state.bestMatch ?? (fallback ? fallback.id : null);
+        if (id) {
+          onTile(id);
           clearSearch();
         }
       } else if (e.key === "Escape") {
         clearSearch();
       } else if (e.key === "ArrowDown") {
         const first = $("#suggest button");
-        if (first) {
+        if (first && first.offsetParent) {
           e.preventDefault();
           first.focus();
         }
@@ -713,8 +702,7 @@
     document.addEventListener("keydown", (e) => {
       if (e.key === "/" && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) {
         e.preventDefault();
-        // Use whichever search box is on screen.
-        (input.getBoundingClientRect().bottom > 0 ? input : poolInput).focus();
+        input.focus();
       }
     });
     document.addEventListener("click", (e) => {
@@ -750,9 +738,8 @@
     else addHero(id);
     // After picking from a filtered list, reset it for the next search.
     if (state.query) {
-      const used = state.lastSearchInput;
       clearSearch();
-      if (used && !window.matchMedia("(hover: none)").matches) used.focus();
+      if (!window.matchMedia("(hover: none)").matches) $("#search").focus();
     }
   }
 
@@ -824,19 +811,22 @@
     }
   }
 
-  function setQuery(value, from) {
+  function setQuery(value) {
     state.query = value;
-    state.lastSearchInput = from;
-    // Keep both search boxes showing the same text.
-    for (const el of [$("#search"), $("#pool-search")]) {
-      if (el !== from) el.value = value;
-    }
     filterGrid();
+    if (value.trim()) revealGrid();
+  }
+
+  // On wide screens the filtered hero list is the search result, so keep it in view.
+  function revealGrid() {
+    if (!window.matchMedia("(min-width: 1024px)").matches) return;
+    const finderBottom = $(".finder").getBoundingClientRect().bottom;
+    const poolTop = $(".pool").getBoundingClientRect().top;
+    if (poolTop < finderBottom) window.scrollBy({ top: poolTop - finderBottom - 8 });
   }
 
   function clearSearch() {
     $("#search").value = "";
-    $("#pool-search").value = "";
     state.query = "";
     $("#suggest").hidden = true;
     filterGrid();

@@ -52,18 +52,18 @@
         </button>
         <ol class="slots" data-slots="enemy"></ol>
       </div>
-
-      <div class="finder">
-        <div class="finder-field">
-          <label for="search" class="sr-only">Find a hero</label>
-          <input id="search" type="search" autocomplete="off" spellcheck="false"
-                 placeholder="Add a hero to enemy team" aria-describedby="search-help">
-          <span id="search-help" class="sr-only">Type a name and press Enter to add the first match to the highlighted team. Press slash to jump here.</span>
-          <ul class="suggest" id="suggest" aria-label="Matching heroes" hidden></ul>
-        </div>
-        <button type="button" class="btn btn-quiet" id="clear">Clear draft</button>
-      </div>
     </section>
+
+    <div class="finder">
+      <div class="finder-field">
+        <label for="search" class="sr-only">Find a hero</label>
+        <input id="search" type="search" autocomplete="off" spellcheck="false"
+               placeholder="Add a hero to enemy team" aria-describedby="search-help">
+        <span id="search-help" class="sr-only">Type a name to filter the hero list, then press Enter to add the highlighted hero to the selected team. Press slash to jump here.</span>
+        <ul class="suggest" id="suggest" aria-label="Matching heroes" hidden></ul>
+      </div>
+      <button type="button" class="btn btn-quiet" id="clear">Clear draft</button>
+    </div>
 
     <div class="layout">
       <section class="results" id="results" aria-label="Suggestions" tabindex="-1">
@@ -92,16 +92,10 @@
       </section>
 
       <section class="pool" aria-label="Heroes">
-        <div class="pool-search">
-          <div class="pool-field">
-            <label for="pool-search" class="sr-only">Search heroes</label>
-            <input id="pool-search" type="search" autocomplete="off" spellcheck="false"
-                   placeholder="Search heroes" aria-describedby="pool-search-help">
-            <span id="pool-search-help" class="sr-only">Filters the hero list as you type. Press Enter to add the highlighted hero to the selected team.</span>
-          </div>
+        <div class="pool-head">
+          <div class="chips" role="group" aria-label="Filter heroes" id="pool-chips"></div>
           <button type="button" class="btn btn-small" id="edit-mine" aria-pressed="false">Edit my heroes</button>
         </div>
-        <div class="chips pool-chips" role="group" aria-label="Filter heroes" id="pool-chips"></div>
         <p class="edit-banner" id="edit-banner" hidden>
           Select the heroes you play. They're saved on this device.
           <button type="button" class="btn btn-small" id="edit-done">Done</button>
