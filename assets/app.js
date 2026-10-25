@@ -474,8 +474,12 @@
       return;
     }
     const meta = state.meta;
-    const range =
-      meta && meta.sampleFrom && meta.sampleTo ? `, newest sample ${shortDate(meta.sampleFrom * 1000)} to ${shortDate(meta.sampleTo * 1000)}` : "";
+    let range = "";
+    if (meta && meta.sampleFrom && meta.sampleTo) {
+      const a = shortDate(meta.sampleFrom * 1000);
+      const b = shortDate(meta.sampleTo * 1000);
+      range = a === b ? `, newest from ${a}` : `, newest from ${a} to ${b}`;
+    }
     el.textContent = `Based on ${p.matches.toLocaleString()} public matches (${p.label})${range}. Updated ${shortDate(p.updated)}. Small samples are pulled toward the expected win rate.`;
   }
 
