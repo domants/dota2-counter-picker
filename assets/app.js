@@ -44,7 +44,6 @@
     onlyMine: false,
     mine: new Set(),
     editMine: false,
-    rankBy: "winrate",
     bracket: "all",
     meta: null,
     provider: null,
@@ -204,10 +203,8 @@
     const advantage = sum(vs, (x) => x.adv);
     const synergy = sum(withs, (x) => x.adv);
     const headline = winVs ?? withRate ?? pc;
-    const key =
-      state.rankBy === "advantage"
-        ? advantage + synergy
-        : headline + (winVs != null && withs.length ? mean(withs, (x) => x.adv) : 0);
+    // Rank by expected win rate; ally synergy nudges it up or down.
+    const key = headline + (winVs != null && withs.length ? mean(withs, (x) => x.adv) : 0);
     const low = vs.some((x) => x.games < LOW_GAMES) || (!vs.length && withs.some((x) => x.games < LOW_GAMES));
     return { id: heroId, pc, vs, withs, winVs, withRate, headline, advantage, synergy, key, low };
   }
@@ -249,9 +246,9 @@
       const activeHere = state.active === team;
       $(`#team-${team}`).toggleAttribute("data-active", activeHere);
       $(`[data-set-active="${team}"].team-head`).setAttribute("aria-pressed", String(activeHere));
-      $(`[data-hint="${team}"]`).textContent = activeHere ? "Adding here" : "Tap to add here";
+      $(`[data-hint="${team}"]`).textContent = activeHere ? "Adding here" : "Add here";
     }
-    $("#search").placeholder = `Add a hero to ${state.active === "ally" ? "your team" : "the enemy team"}`;
+    $("#search").placeholder = `Add a hero to ${state.active === "ally" ? "your team" : "enemy team"}`;
     syncGridMarks();
     writeUrl();
   }
@@ -348,7 +345,7 @@
         );
       }
     }
-    $("#edit-mine").textContent = `My heroes (${state.mine.size})`;
+    $("#edit-mine").textContent = state.mine.size ? `Edit my heroes (${state.mine.size})` : "Edit my heroes";
   }
 
   /* ---------- rendering: results ---------- */
@@ -389,7 +386,7 @@
     if (state.onlyMine) {
       if (!state.mine.size) {
         list.innerHTML = "";
-        showNotice("You haven't picked your heroes yet. Use My heroes in the hero list to choose them.");
+        showNotice("You haven't picked your heroes yet. Use Edit my heroes in the hero list to choose them.");
         $("#more").hidden = true;
         return;
       }
@@ -412,72 +409,112 @@
     }
 
     const top = scored.slice(0, state.shown);
-    const maxAdv = Math.max(0.05, ...scored.map((s) => Math.abs(s.advantage + s.synergy)));
     list.dataset.tab = state.tab;
     list.innerHTML = "";
-    top.forEach((s, i) => list.append(resultRow(s, i + 1, maxAdv)));
+    top.forEach((s, i) => list.append(resultRow(s, i + 1)));
     $("#more").hidden = scored.length <= state.shown;
+
+    const first = top[0];
+    const firstName = state.byId.get(first.id).name;
+    announce(
+      state.tab === "best"
+        ? `Best picks updated. ${firstName} is first with ${pct(first.headline)} ${headlineLabel(first)}.`
+        : `Picks to avoid updated. ${firstName} is first with ${pct(first.headline)} ${headlineLabel(first)}.`
+    );
   }
 
-  function resultRow(s, rank, maxAdv) {
+  function headlineLabel(s) {
+    if (s.winVs != null) return "win rate vs them";
+    if (s.withRate != null) return "win rate with your team";
+    return "overall win rate";
+  }
+
+  function resultRow(s, rank) {
     const h = state.byId.get(s.id);
     const li = document.createElement("li");
     li.className = "row";
     if (s.low) li.classList.add("row-low");
 
-    const headLabel = s.winVs != null ? "win rate vs them" : s.withRate != null ? "win rate with your team" : "overall win rate";
-    const total = s.advantage + s.synergy;
+    const rankEl = document.createElement("span");
+    rankEl.className = "row-rank";
+    rankEl.textContent = String(rank);
 
-    const left = document.createElement("div");
-    left.className = "row-main";
-    left.innerHTML = `<span class="row-rank">${rank}</span>`;
-    const pic = portrait(h, "row-img");
-    left.append(pic);
     const who = document.createElement("div");
     who.className = "row-who";
-    who.innerHTML = `<span class="row-name"></span><span class="row-sub">${pct(s.pc)} overall${s.low ? ", few games" : ""}</span>`;
-    $(".row-name", who).textContent = h.name;
-    left.append(who);
+    const name = document.createElement("span");
+    name.className = "row-name";
+    name.textContent = h.name;
+    const sub = document.createElement("span");
+    sub.className = "row-sub";
+    sub.append(`${pct(s.pc)} overall`);
+    const extra = document.createElement("span");
+    extra.className = "wide-only";
+    extra.textContent = " win rate";
+    sub.append(extra);
+    if (s.low) sub.append(", few games");
+    who.append(name, sub);
 
-    const right = document.createElement("div");
-    right.className = "row-score";
-    right.innerHTML = `<span class="row-pct">${pct(s.headline)}</span><span class="row-pct-label">${headLabel}</span>`;
+    // Second number: advantage against the enemy picks, or synergy when only allies are set.
+    const edge = s.vs.length ? s.advantage : s.synergy;
+    const edgeLabel = s.vs.length ? "advantage" : "synergy";
+    const stats = document.createElement("div");
+    stats.className = "row-stats";
+    stats.append(stat(pct(s.headline), headlineLabel(s), "stat-main"), stat(signed(edge), edgeLabel, edge >= 0 ? "pos" : "neg"));
 
-    const detail = document.createElement("div");
-    detail.className = "row-detail";
-    const chips = document.createElement("ul");
-    chips.className = "pairs";
-    for (const x of s.vs) chips.append(pairChip(x, "vs"));
-    for (const x of s.withs) chips.append(pairChip(x, "with"));
-    detail.append(chips);
+    const pairs = document.createElement("div");
+    pairs.className = "row-pairs";
+    if (s.vs.length) pairs.append(pairGroup("vs", s.vs));
+    if (s.withs.length) pairs.append(pairGroup("with", s.withs));
 
-    const bar = document.createElement("div");
-    bar.className = "adv";
-    const width = Math.min(50, (Math.abs(total) / maxAdv) * 50);
-    bar.innerHTML = `<span class="adv-fill ${total >= 0 ? "pos" : "neg"}" style="width:${width.toFixed(1)}%"></span>`;
-    bar.title = `${signed(total)} points ${state.ally.length && s.withs.length ? "advantage and synergy" : "advantage"}`;
-    const advText = document.createElement("span");
-    advText.className = `adv-num ${total >= 0 ? "pos" : "neg"}`;
-    advText.textContent = `${signed(total)} adv`;
-    detail.append(bar, advText);
-
-    li.append(left, right, detail);
+    li.append(rankEl, portrait(h, "row-img"), who, stats, pairs);
     return li;
+  }
+
+  function stat(value, label, cls) {
+    const el = document.createElement("div");
+    el.className = `stat ${cls}`;
+    const num = document.createElement("span");
+    num.className = "stat-num";
+    num.textContent = value;
+    const lab = document.createElement("span");
+    lab.className = "stat-label";
+    lab.textContent = label;
+    el.append(num, lab);
+    return el;
+  }
+
+  function pairGroup(kind, items) {
+    const group = document.createElement("div");
+    group.className = `pair-group pair-group-${kind}`;
+    const label = document.createElement("span");
+    label.className = "pairs-label";
+    label.setAttribute("aria-hidden", "true");
+    label.textContent = kind;
+    const ul = document.createElement("ul");
+    ul.className = "pairs";
+    ul.setAttribute("aria-label", kind === "vs" ? "Against each enemy hero" : "With each of your heroes");
+    for (const x of items) ul.append(pairChip(x, kind));
+    group.append(label, ul);
+    return group;
   }
 
   function pairChip(x, kind) {
     const h = state.byId.get(x.id);
     const li = document.createElement("li");
     li.className = `pair pair-${kind} ${x.adv >= 0 ? "pos" : "neg"}`;
-    const raw = x.raw == null ? "no games yet" : `${pct(x.raw)} over ${x.games.toLocaleString()} games`;
-    li.title = `${kind === "vs" ? "Against" : "With"} ${h.name}: ${raw}. ${signed(x.adv)} points vs expected.`;
+    const raw = x.raw == null ? "no games yet" : `${pct(x.raw)} win rate over ${x.games.toLocaleString()} games`;
+    const relation = kind === "vs" ? "Against" : "With";
+    const delta = `${Math.abs(x.adv * 100).toFixed(1)} points ${x.adv >= 0 ? "better" : "worse"} than expected`;
+    li.title = `${relation} ${h.name}: ${raw}, ${delta}.`;
     li.append(portrait(h, "pair-img"));
     const t = document.createElement("span");
+    t.className = "pair-num";
+    t.setAttribute("aria-hidden", "true");
     t.textContent = signed(x.adv);
     li.append(t);
     const sr = document.createElement("span");
     sr.className = "sr-only";
-    sr.textContent = ` ${kind === "vs" ? "against" : "with"} ${h.name}`;
+    sr.textContent = `${relation} ${h.name}: ${raw}, ${delta}.`;
     li.append(sr);
     return li;
   }
@@ -497,7 +534,7 @@
       const b = shortDate(meta.sampleTo * 1000);
       range = a === b ? `, newest from ${a}` : `, newest from ${a} to ${b}`;
     }
-    el.textContent = `Based on ${p.matches.toLocaleString()} public matches (${p.label})${range}. Updated ${shortDate(p.updated)}. Small samples are pulled toward the expected win rate.`;
+    el.textContent = `Advantage is how many points better or worse a hero does against these picks than its usual win rate predicts. Based on ${p.matches.toLocaleString()} public matches (${p.label})${range}. Updated ${shortDate(p.updated)}.`;
   }
 
   /* ---------- controls ---------- */
@@ -542,7 +579,7 @@
 
   function setTab(tab, rerender = true) {
     state.tab = tab;
-    for (const t of $$(".tab")) t.setAttribute("aria-selected", String(t.dataset.tab === tab));
+    for (const t of $$(".tab")) t.setAttribute("aria-pressed", String(t.dataset.tab === tab));
     state.shown = PAGE;
     if (rerender) {
       writeUrl();
@@ -571,11 +608,6 @@
         state.poolRole = v === "mine" ? "mine" : v ? Number(v) : null;
         for (const c of $$("#pool-chips .chip")) c.setAttribute("aria-pressed", String(c === t));
         return filterGrid();
-      }
-      if (t.dataset.rank) {
-        state.rankBy = t.dataset.rank;
-        for (const s of $$(".seg-btn")) s.setAttribute("aria-pressed", String(s === t));
-        return renderResults();
       }
       if (t.dataset.suggest) {
         addHero(Number(t.dataset.suggest));
@@ -783,7 +815,6 @@
       b.type = "button";
       b.className = "suggest-item";
       b.dataset.suggest = String(h.id);
-      b.setAttribute("role", "option");
       b.append(portrait(h, "suggest-img"));
       const s = document.createElement("span");
       s.textContent = h.name;
@@ -898,6 +929,14 @@
     n.textContent = text;
     n.classList.toggle("notice-soft", soft);
     n.hidden = false;
+    if (!soft) announce(text);
+  }
+
+  // One stable status region, so screen readers hear a short summary
+  // instead of the whole result list on every change.
+  function announce(text) {
+    const el = $("#result-status");
+    if (el.textContent !== text) el.textContent = text;
   }
 
   function hideNotice() {

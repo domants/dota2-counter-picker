@@ -37,7 +37,7 @@
         <button type="button" class="team-head" data-set-active="ally" aria-pressed="false">
           <span class="team-name">Your team</span>
           <span class="team-count" data-count="ally">0/5</span>
-          <span class="team-hint" data-hint="ally">Tap to add here</span>
+          <span class="team-hint" data-hint="ally">Add here</span>
         </button>
         <ol class="slots" data-slots="ally"></ol>
       </div>
@@ -57,9 +57,9 @@
         <div class="finder-field">
           <label for="search" class="sr-only">Find a hero</label>
           <input id="search" type="search" autocomplete="off" spellcheck="false"
-                 placeholder="Add a hero to the enemy team" aria-describedby="search-help">
+                 placeholder="Add a hero to enemy team" aria-describedby="search-help">
           <span id="search-help" class="sr-only">Type a name and press Enter to add the first match to the highlighted team. Press slash to jump here.</span>
-          <ul class="suggest" id="suggest" role="listbox" hidden></ul>
+          <ul class="suggest" id="suggest" aria-label="Matching heroes" hidden></ul>
         </div>
         <button type="button" class="btn btn-quiet" id="clear">Clear draft</button>
       </div>
@@ -67,9 +67,9 @@
 
     <div class="layout">
       <section class="results" id="results" aria-label="Suggestions" tabindex="-1">
-        <div class="tabs" role="tablist" aria-label="Suggestion type">
-          <button type="button" role="tab" class="tab" id="tab-best" aria-selected="true" data-tab="best">Best picks</button>
-          <button type="button" role="tab" class="tab" id="tab-avoid" aria-selected="false" data-tab="avoid">Picks to avoid</button>
+        <div class="tabs" role="group" aria-label="Show">
+          <button type="button" class="tab" id="tab-best" aria-pressed="true" data-tab="best">Best picks</button>
+          <button type="button" class="tab" id="tab-avoid" aria-pressed="false" data-tab="avoid">Picks to avoid</button>
         </div>
 
         <div class="controls">
@@ -77,21 +77,16 @@
             <span class="control-label" id="role-label">Your role</span>
             <div class="chips" role="group" aria-labelledby="role-label" id="role-chips"></div>
           </div>
-          <div class="control control-row">
-            <label class="switch">
-              <input type="checkbox" id="only-mine">
-              <span class="switch-track" aria-hidden="true"></span>
-              <span>Only my heroes</span>
-            </label>
-            <div class="seg" role="group" aria-label="Rank by">
-              <button type="button" class="seg-btn" data-rank="winrate" aria-pressed="true">Win rate</button>
-              <button type="button" class="seg-btn" data-rank="advantage" aria-pressed="false">Advantage</button>
-            </div>
-          </div>
+          <label class="switch">
+            <input type="checkbox" id="only-mine">
+            <span class="switch-track" aria-hidden="true"></span>
+            <span>Only my heroes</span>
+          </label>
         </div>
 
         <div class="notice" id="notice" hidden></div>
-        <ol class="list" id="list" aria-live="polite"></ol>
+        <ol class="list" id="list"></ol>
+        <p class="sr-only" id="result-status" role="status"></p>
         <button type="button" class="btn btn-wide" id="more" hidden>Show more</button>
         <p class="source" id="source"></p>
       </section>
@@ -104,11 +99,11 @@
                    placeholder="Search heroes" aria-describedby="pool-search-help">
             <span id="pool-search-help" class="sr-only">Filters the hero list as you type. Press Enter to add the highlighted hero to the selected team.</span>
           </div>
-          <button type="button" class="btn btn-small" id="edit-mine" aria-pressed="false">My heroes (0)</button>
+          <button type="button" class="btn btn-small" id="edit-mine" aria-pressed="false">Edit my heroes</button>
         </div>
         <div class="chips pool-chips" role="group" aria-label="Filter heroes" id="pool-chips"></div>
         <p class="edit-banner" id="edit-banner" hidden>
-          Tap the heroes you play. They're saved on this device.
+          Select the heroes you play. They're saved on this device.
           <button type="button" class="btn btn-small" id="edit-done">Done</button>
         </p>
         <p class="pool-empty" id="pool-empty" hidden></p>
@@ -118,7 +113,7 @@
   </main>
 
   <footer class="foot wrap">
-    <p>Match data from <a href="https://www.opendota.com/" rel="noopener">OpenDota</a>. Hero portraits and Dota 2 are property of Valve Corporation. This is a DMSN's roject with AI assisted to help build, not affiliated with Valve.</p>
+    <p>Match data from <a href="https://www.opendota.com/" rel="noopener">OpenDota</a>. Hero portraits and Dota 2 are property of Valve Corporation. This is a DMSN's project with AI assisted to help build, not affiliated with Valve.</p>
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>

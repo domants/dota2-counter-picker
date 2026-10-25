@@ -7,10 +7,10 @@ It's a plain static site: HTML, CSS and one JavaScript file, no build step. GitH
 ## What it does
 
 - Two draft rows, your team and the enemy team. Click a team to choose where new picks go, then click heroes in the grid or type a name and press Enter. Short names work too (`am`, `qop`, `sf`, `kotl`, `wk`).
-- **Best picks** and **Picks to avoid**, ranked by win rate against the enemy picks or by total counter advantage.
+- **Best picks** and **Picks to avoid**, ranked by win rate against the enemy picks. Each hero also shows its advantage: how many points better or worse it does against those picks than its usual win rate predicts.
 - Each suggestion shows its win rate against every enemy hero you've added, plus how well it pairs with your own picks.
 - Filters for role (carry, mid, offlane, soft support, hard support) and rank bracket (Herald–Guardian up to Divine–Immortal).
-- **My heroes**: mark the heroes you play and limit suggestions to them. Saved in your browser.
+- **Edit my heroes**: mark the heroes you play, then turn on **Only my heroes** to limit suggestions to them. Saved in your browser.
 - **Copy draft link** shares the current draft, bracket and role as a URL.
 
 ## Where the numbers come from
